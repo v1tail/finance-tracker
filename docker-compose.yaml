@@ -1,0 +1,39 @@
+version: '3.8'
+services:
+  frontend:
+    container_name: frontend
+    build: ./frontend
+    ports:
+      - "3001:80"
+    environment:
+      - BASE_URL=localhost:8000
+  warehouse:
+    container_name: warehouse
+    image: postgres:13
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: tracker
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      retries: 5
+    restart: always
+    ports:
+      - "5432:5432"
+  db_migrations:
+    container_name: db_migrations
+    build: ./database
+    depends_on:
+      warehouse:
+        condition: service_healthy
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_HOST: warehouse
+      POSTGRES_DB: tracker
+    command: ["npm", "run", "migrate:up"]
+volumes:
+  postgres-data:
